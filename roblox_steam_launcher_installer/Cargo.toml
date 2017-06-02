@@ -1,0 +1,12 @@
+[package]
+name = "roblox_steam_launcher_installer"
+version = "0.1.0"
+authors = ["Corecii Cyr <corecii@corecii.com>"]
+
+[dependencies]
+roblox_steam_launcher_shared = { path = "../roblox_steam_launcher_shared" }
+steam_vdf = { git = "https://github.com/Corecii/steam_vdf" }
+crc = "^1.0.0"
+regex = "0.2"
+lazy_static = "0.2.8"
+winreg = "0.4"

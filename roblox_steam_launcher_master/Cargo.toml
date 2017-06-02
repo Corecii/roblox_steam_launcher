@@ -1,0 +1,7 @@
+[package]
+name = "roblox_steam_launcher_master"
+version = "0.1.0"
+authors = ["Corecii Cyr <corecii@corecii.com>"]
+
+[dependencies]
+roblox_steam_launcher_shared = { path = "../roblox_steam_launcher_shared" }
