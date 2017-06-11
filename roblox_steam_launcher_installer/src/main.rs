@@ -64,26 +64,28 @@ fn get_steam_users(steam_userdata: &PathBuf) -> io::Result<Vec<SteamUser>> {
             None => continue,  // This should never happen.
         };
         path.push("config");
-        let userdata_dir = path.clone();
-        path.push("localconfig.vdf");
-        let mut file = OpenOptions::new().read(true).write(false).open(path)?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        lazy_static! {
-            static ref REGEX_GET_NAME: Regex = Regex::new("\"PersonaName\"\\s*\"(.+?)\"[\r\n]+").unwrap();
-            static ref REGEX_REPLACE_QUOTE: Regex = Regex::new("\"").unwrap();
+        if path.exists() {  // Sometimes there are users w/o config. Not sure why.
+            let userdata_dir = path.clone();
+            path.push("localconfig.vdf");
+            let mut file = OpenOptions::new().read(true).write(false).open(path)?;
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)?;
+            lazy_static! {
+                static ref REGEX_GET_NAME: Regex = Regex::new("\"PersonaName\"\\s*\"(.+?)\"[\r\n]+").unwrap();
+                static ref REGEX_REPLACE_QUOTE: Regex = Regex::new("\"").unwrap();
+            }
+            let captures = REGEX_GET_NAME.captures(&contents).unwrap();
+            let user_name_raw = match captures.get(1) {
+                Some(mat) => mat.as_str(),
+                None => "Unknown"
+            };
+            let user_name = REGEX_REPLACE_QUOTE.replace_all(&user_name_raw, "\"").into_owned();
+            users.push(SteamUser {
+                user_id: user_id,
+                user_name: String::from(user_name),
+                userdata_dir: userdata_dir,
+            });
         }
-        let captures = REGEX_GET_NAME.captures(&contents).unwrap();
-        let user_name_raw = match captures.get(1) {
-            Some(mat) => mat.as_str(),
-            None => "Unknown"
-        };
-        let user_name = REGEX_REPLACE_QUOTE.replace_all(&user_name_raw, "\"").into_owned();
-        users.push(SteamUser {
-            user_id: user_id,
-            user_name: String::from(user_name),
-            userdata_dir: userdata_dir,
-        });
     }
     Ok(users)
 }
@@ -329,7 +331,7 @@ fn uninstall(roblox_versions_path: PathBuf, roblox_current_path: PathBuf, steam_
             }
         },
         Err(err) => {
-            println!("Could not get Steam users! Skipping step...")
+            println!("Could not get Steam users! Skipping step...\n{:?}", err)
         }
     };
 
