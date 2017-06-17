@@ -1,10 +1,15 @@
 extern crate roblox_steam_launcher_shared;
 extern crate hyper;
+extern crate notify;
 
 use roblox_steam_launcher_shared::*;
 use std::path::PathBuf;
 use hyper::client::Client;
 use std::io::Read;
+use notify::{RecommendedWatcher, Watcher, RecursiveMode};
+use std::sync::mpsc::channel;
+use std::time::Duration;
+use std::ffi::OsStr;
 
 #[derive(Copy, Clone)]
 enum ApplyResult {
@@ -66,6 +71,31 @@ fn unapply_launcher(version_path: &PathBuf) -> ApplyResult {
     return ApplyResult::Applied;
 }
 
+fn watch_for_new_exe(version_path: &PathBuf) {
+    let (tx, rx) = channel();
+    let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(0)).expect("Could not create file watcher");
+    watcher.watch(version_path, RecursiveMode::Recursive).expect("Could not watch directory");
+    println!("Watching for changes...");
+    loop {
+        match rx.recv() {
+            Ok(event) => {
+                println!("{:?}", event);
+                if let notify::DebouncedEvent::Create(new_path) = event {
+                    if new_path.file_name() == Some(OsStr::new("RobloxPlayerLauncher.exe")) {
+                        //fix up this new exe
+                        let mut version_path = new_path.clone();
+                        version_path.pop();
+                        apply_launcher(&version_path);
+                        break;
+                    }
+                }
+            },
+            Err(e) => println!("watch error: {:?}", e),
+        }
+    }
+    println!("Done watching for changes.");
+}
+
 fn main() {
     let program_directory = match get_program_directory(&mut std::env::args()) {
         Some(path) => path,
@@ -89,29 +119,27 @@ fn main() {
             // In the future, we should only run it once, but replace the new exe as it is created.
             let mut exe_path = current_version_directory.clone();
             exe_path.push("RobloxPlayerLauncher.exe");
-            let mut child_process = launch_game(&exe_path, &vec![]).expect("Could not launch Roblox");
-            if let Err(err) = child_process.wait() {
-                println!("Error waiting for Roblox: {:?}", err);
-            }
+            watch_for_new_exe(&program_directory);
+            launch_game(&exe_path, &config.arguments).expect("Could not launch Roblox");
         },
-        Ok(true) | Err(_) => (),  // if we are on the newest version OR if we couldn't check, launch roblox anyway.
+        Ok(true) | Err(_) => {
+            let newest_version_directory = current_version_directory;
+            match apply_launcher(&newest_version_directory) {
+                ApplyResult::AlreadyApplied | ApplyResult::Applied => (),
+                ApplyResult::CannotApply => panic!("Could not apply launcher: RobloxPlayerLauncher.exe does not exist."),
+                ApplyResult::Error => panic!("Error applying launcher."),
+            }
+            if config.arguments.len() == 0 {
+                return;  // We weren't supposed to run the roblox launcher anyway
+            }
+            let mut game_directory = newest_version_directory;
+            game_directory.push("RobloxPlayerLauncher_original.exe");
+            launch_game(&game_directory, &config.arguments).expect("Error launching ROBLOX");
+        },
     };
-    let newest_version_directory = get_newest_roblox_player_directory_path(&program_directory).expect("Error getting newest directory.");
-    match apply_launcher(&newest_version_directory) {
-        ApplyResult::AlreadyApplied | ApplyResult::Applied => (),
-        ApplyResult::CannotApply => panic!("Could not apply launcher: RobloxPlayerLauncher.exe does not exist."),
-        ApplyResult::Error => panic!("Error applying launcher."),
-    }
-    if config.arguments.len() == 0 {
-        return;  // We weren't supposed to run the roblox launcher anyway
-    }
-    let mut game_directory = newest_version_directory;
-    game_directory.push("RobloxPlayerLauncher_original.exe");
-    launch_game(&game_directory, &config.arguments).expect("Error launching ROBLOX");
     config.arguments = vec![];
     match config.write_to_path(&config_path) {
         Ok(_) => (),
         Err(err) => panic!("{}", err),
     };
-
 }

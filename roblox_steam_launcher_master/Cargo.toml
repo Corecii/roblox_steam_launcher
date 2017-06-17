@@ -6,3 +6,4 @@ authors = ["Corecii Cyr <corecii@corecii.com>"]
 [dependencies]
 roblox_steam_launcher_shared = { path = "../roblox_steam_launcher_shared" }
 hyper = "0.10.11"
+notify = "4.0.0"
