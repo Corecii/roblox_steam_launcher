@@ -117,6 +117,12 @@ fn main() {
         Ok(config) => config,
         Err(err) => panic!("{}", err),
     };
+    let config_arguments = config.arguments;
+    config.arguments = vec![];
+    match config.write_to_path(&config_path) {
+        Ok(_) => (),
+        Err(err) => panic!("{}", err),
+    };
     let current_version_directory = get_newest_roblox_player_directory_path(&program_directory).expect("Error getting newest directory.");
     let current_version = current_version_directory.file_name().expect("Could not get file name!").to_string_lossy().into_owned();
     match check_if_newest_version(current_version) {
@@ -130,7 +136,7 @@ fn main() {
             let mut exe_path = current_version_directory.clone();
             exe_path.push("RobloxPlayerLauncher.exe");
             watch_for_new_exe(&program_directory);
-            launch_game(&exe_path, &config.arguments).expect("Could not launch Roblox");
+            launch_game(&exe_path, &config_arguments).expect("Could not launch Roblox");
         },
         Ok(true) | Err(_) => {
             let newest_version_directory = current_version_directory;
@@ -144,12 +150,7 @@ fn main() {
             }
             let mut game_directory = newest_version_directory;
             game_directory.push("RobloxPlayerLauncher_original.exe");
-            launch_game(&game_directory, &config.arguments).expect("Error launching ROBLOX");
+            launch_game(&game_directory, &config_arguments).expect("Error launching ROBLOX");
         },
-    };
-    config.arguments = vec![];
-    match config.write_to_path(&config_path) {
-        Ok(_) => (),
-        Err(err) => panic!("{}", err),
     };
 }
