@@ -7,9 +7,9 @@ use std::path::PathBuf;
 use hyper::client::Client;
 use std::io::Read;
 use notify::{RecommendedWatcher, Watcher, RecursiveMode};
-use std::sync::mpsc::channel;
-use std::time::Duration;
+use std::sync::mpsc::{channel, RecvTimeoutError};
 use std::ffi::OsStr;
+use std::time::{Duration, Instant};
 
 #[derive(Copy, Clone)]
 enum ApplyResult {
@@ -76,8 +76,10 @@ fn watch_for_new_exe(version_path: &PathBuf) {
     let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(0)).expect("Could not create file watcher");
     watcher.watch(version_path, RecursiveMode::Recursive).expect("Could not watch directory");
     println!("Watching for changes...");
+    let start = Instant::now();
+    let timeout_duration = Duration::from_secs(120);
     loop {
-        match rx.recv() {
+        match rx.recv_timeout(Duration::from_secs(10)) {
             Ok(event) => {
                 println!("{:?}", event);
                 if let notify::DebouncedEvent::Create(new_path) = event {
@@ -90,7 +92,15 @@ fn watch_for_new_exe(version_path: &PathBuf) {
                     }
                 }
             },
-            Err(e) => println!("watch error: {:?}", e),
+            Err(RecvTimeoutError::Timeout) => {
+                if start.elapsed() >= timeout_duration {
+                    println!("Timeout reached. Exiting.");
+                }
+            },
+            Err(RecvTimeoutError::Disconnected) => {
+                println!("watch error: disconnected");
+                break;
+            },
         }
     }
     println!("Done watching for changes.");
