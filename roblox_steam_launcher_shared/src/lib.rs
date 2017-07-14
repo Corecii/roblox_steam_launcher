@@ -112,7 +112,7 @@ pub fn get_intended_arguments(args: &mut env::Args) -> Vec<String> {
 }
 
 pub fn get_config_file_name() -> &'static str {
-    "roblox_steam_launcher.config"
+    "roblox_steam_launcher_config.json"
 }
 
 pub fn launch_steam(game_id: String) -> std::io::Result<std::process::Child> {
