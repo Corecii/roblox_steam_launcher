@@ -4,11 +4,14 @@ This allows one to have the Steam overlay and Steam Input in Roblox. It function
 by replacing `RobloxPlayerLauncher.exe` with a custom launcher that launches the
 real `RobloxPlayerLauncher` through Steam.
 
+## [Newest Release](https://github.com/Corecii/roblox_steam_launcher/releases)
+
 ## Installation and Uninstallation
 
 1. Grab the [Latest Release](https://github.com/Corecii/roblox_steam_launcher/releases)
 2. Unzip
 3. Run `roblox_steam_launcher_installer.exe`.
+4. If you have installed Roblox Steam Launcher previously, `Uninstall` first, then run the installer again and choose `Install`
 
 ## Building
 
@@ -23,13 +26,11 @@ in the proper places and copy the executables to `build` or `build_release`.
 * Python is used for calculating the game id of a game because I could not figure out how
 to set up the crc32 calculation properly in Rust, and I did not want to spend time
 writing my own. It was fastest to bundle a python executable.
-* When updating, Roblox will run twice if Roblox Steam Launcher is installed.
-This is normal. One window is updating, and another is getting ready to play the game when it's updated.
 * The Roblox website will suggest that one downloads Roblox, as if it is not already installed.
-Roblox still runs fine. This may be an issue with the launcher taking too long, but it has
-not been investigated.
-* Errors are not handled well, and any executable included will error out and
-exit without prompting the user if there is a problem.
+Roblox still runs fine. This is probably an issue with the launcher taking too long, and it
+sometimes happens even without the launcher installed.
+* Errors in one half of the launching process are not handled well, and won't give any indication
+if things break.
 
 ## Screenshots
 
